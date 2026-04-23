@@ -1,0 +1,264 @@
+---
+
+# - name: Initialize wg server
+#   import_playbook: ../wgbook/server.test.yaml
+
+- name: Creating tdune config
+  hosts: tdune
+  become: true
+  become_user: "{{ hostvars[inventory_hostname].user }}"
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Install nomad scripts
+      become: true
+      register: sustd
+      args:
+        executable: /bin/bash
+      ansible.builtin.shell: |
+        (git clone https://{{ git_user }}:{{ git_org_token }}@github.com/zerodoc-s-stack/zdnomad || true) && \
+        pushd zdnomad && \
+        git pull origin main && \
+        popd
+      changed_when: sustd.rc == 0
+
+    - name: Create consul group
+      ansible.builtin.group:
+        name: consul
+        state: present
+
+    - name: Create consul user
+      ansible.builtin.user:
+        name: consul
+        groups: "consul"
+        shell: /bin/bash
+        create_home: false
+        state: present
+
+    - name: Create nomad group
+      ansible.builtin.group:
+        name: nomad
+        state: present
+
+    - name: Create nomad user
+      ansible.builtin.user:
+        name: nomad
+        groups: "nomad"
+        shell: /bin/bash
+        create_home: false
+        state: present
+
+    - name: Create vault group
+      ansible.builtin.group:
+        name: vault
+        state: present
+
+    - name: Create vault user
+      ansible.builtin.user:
+        name: vault
+        groups: "vault"
+        shell: /bin/bash
+        create_home: false
+        state: present
+
+    - name: Enable and persist ip forwarding
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: "1"
+        state: present
+        sysctl_set: true
+        reload: true
+
+    - name: Get wg network info
+      ansible.builtin.command: ip -4 addr show dune
+      register: wg_net_info
+      changed_when: wg_net_info.rc == 0
+
+    - name: Parse wg ip from network info
+      ansible.builtin.command:
+        cmd: grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+        stdin: "{{ wg_net_info.stdout }}"
+      register: wg_ip_address
+      changed_when: wg_ip_address.rc == 0
+
+    - name: Set local network ip address
+      ansible.builtin.set_fact:
+        wg_ip: "{{ wg_ip_address.stdout }}"
+
+    - name: Install dnsmasq
+      ansible.builtin.apt:
+        name:
+          - dnsmasq
+        state: present
+
+    - name: Install hashicorp vault
+      ansible.builtin.apt:
+        name:
+          - vault
+        state: present
+      when: ansible_facts['lsb']['release'] == "23.10"
+
+    - name: Check vault exists
+      ansible.builtin.stat:
+        path: /usr/bin/vault
+      register: vault_check
+      ignore_errors: true
+
+    - name: Download and Install vault
+      ansible.builtin.unarchive:
+        src: https://releases.hashicorp.com/vault/1.16.2/vault_1.16.2_linux_arm64.zip
+        dest: /usr/bin
+        remote_src: true
+      when: ansible_facts['lsb']['release'] == "24.04" and ansible_architecture == "aarch64" and not vault_check.stat.exists
+
+    - name: Add vault service
+      ansible.builtin.copy:
+        src: ../data/vault.service
+        dest: /etc/systemd/system/vault.service
+        mode: '0644'
+
+    - name: Creates vault directory
+      ansible.builtin.file:
+        path: /etc/vault.d
+        state: directory
+        owner: vault
+        group: vault
+        mode: '0755'
+
+    - name: Create vault server config
+      become: true
+      become_user: root
+      ansible.builtin.template:
+        dest: /etc/vault.d/vault.hcl
+        src: vault-server.hcl.tmpl
+        owner: vault
+        group: vault
+        mode: '0644'
+
+    - name: Creates consul directory
+      ansible.builtin.file:
+        path: /etc/consul.d
+        state: directory
+        owner: consul
+        group: consul
+        mode: '0755'
+
+    - name: Creates consul opt directory
+      ansible.builtin.file:
+        path: /opt/consul
+        state: directory
+        owner: consul
+        group: consul
+        mode: '0755'
+
+    - name: Create consul server config
+      ansible.builtin.template:
+        dest: /etc/consul.d/consul.hcl
+        src: consul-server.hcl.tmpl
+        owner: consul
+        group: consul
+        mode: '0644'
+
+    - name: Creates nomad directory
+      ansible.builtin.file:
+        path: /etc/nomad.d
+        state: directory
+        owner: nomad
+        group: nomad
+        mode: '0755'
+
+    - name: Creates nomad opt directory
+      ansible.builtin.file:
+        path: /opt/nomad
+        state: directory
+        owner: nomad
+        group: nomad
+        mode: '0755'
+
+    - name: Create nomad server config
+      ansible.builtin.template:
+        dest: /etc/nomad.d/nomad.hcl
+        src: nomad-server.hcl.tmpl
+        owner: nomad
+        group: nomad
+        mode: '0644'
+
+    - name: Start consul service and enable on boot
+      become: true
+      become_user: root
+      ansible.builtin.systemd:
+        name: consul
+        enabled: true
+        state: started
+
+    - name: Start nomad service and enable on boot
+      become: true
+      become_user: root
+      ansible.builtin.systemd:
+        name: nomad
+        enabled: true
+        state: started
+
+    - name: Update resolved with wg ip
+      become: true
+      ansible.builtin.template:
+        dest: /etc/resolv.conf
+        src: resolv.conf.tmpl
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Add dnsmasq consul config
+      ansible.builtin.template:
+        dest: /etc/dnsmasq.d/10-consul.conf
+        src: 10-consul.test.conf.tmpl
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Stop systemd-resovled service
+      become: true
+      ansible.builtin.systemd:
+        name: systemd-resolved
+        enabled: false
+        state: stopped
+
+    - name: Start dnsmasq service
+      become: true
+      ansible.builtin.systemd:
+        name: dnsmasq
+        enabled: true
+        state: started
+
+    - name: Create drone volume folder
+      ansible.builtin.file:
+        path: /mnt/local/drone
+        state: directory
+        mode: '0755'
+
+    - name: Make postgres directory
+      ansible.builtin.file:
+        path: /mnt/local/postgres
+        state: directory
+        mode: '0755'
+
+    - name: Create signoz volume
+      ansible.builtin.file:
+        path: /mnt/local/signoz
+        state: directory
+        mode: '0755'
+
+    - name: Create clickhouse volume
+      ansible.builtin.file:
+        path: /mnt/local/clickhouse
+        state: directory
+        mode: '0755'
+
+    - name: Create zookeeper volume
+      ansible.builtin.file:
+        path: /mnt/local/zookeeper
+        state: directory
+        mode: '0755'

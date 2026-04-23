@@ -1,0 +1,58 @@
+- name: Copy rkhunter's default config file
+  become: true
+  ansible.builtin.command: cp -p /etc/rkhunter.conf /etc/rkhunter.conf.local
+  register: rkhunter_output
+  changed_when: rkhunter_output.rc == 0
+
+- name: Configure rkhunter
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/rkhunter.conf.local
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    create: true
+    mode: '0644'
+  loop:
+    - { regexp: '^UPDATE_MIRRORS', line: 'UPDATE_MIRRORS=1' }
+    - { regexp: '^MIRRORS_MODE', line: 'MIRRORS_MODE=0'}
+    - { regexp: '^MAIL-ON-WARNING', line: 'MAIL-ON-WARNING={{ mail_to }}'}
+    - { regexp: '^COPY_LOG_ON_ERROR', line: 'COPY_LOG_ON_ERROR=1'}
+    - { regexp: '^PHALANX2_DIRTEST', line: 'PHALANX2_DIRTEST=1'}
+    - { regexp: '^WEB_CMD', line: 'WEB_CMD=""'}
+    - { regexp: '^USE_LOCKING', line: 'USE_LOCKING=1'}
+    - { regexp: '^SHOW_SUMMARY_WARNINGS_NUMBER', line: 'SHOW_SUMMARY_WARNINGS_NUMBER=1'}
+
+- name: Configure rkhunter pt. 2
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/default/rkhunter
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    create: true
+    mode: '0644'
+  loop:
+    - { regexp: '^CRON_DAILY_RUN', line: 'CRON_DAILY_RUN="true"' }
+    - { regexp: '^CRON_DB_UPDATE', line: 'CRON_DB_UPDATE="true"' }
+    - { regexp: '^DB_UPDATE_EMAIL', line: 'DB_UPDATE_EMAIL="false"' }
+    - { regexp: '^REPORT_EMAIL', line: 'REPORT_EMAIL="root"' }
+    - { regexp: '^APT_AUTOGEN', line: 'APT_AUTOGEN="true"' }
+    - { regexp: '^NICE', line: 'NICE="0"' }
+    - { regexp: '^RUN_CHECK_ON_BATTERY', line: 'RUN_CHECK_ON_BATTERY="false"' }
+
+- name: Whitelist rkhunter
+  become: true
+  ansible.builtin.blockinfile:
+    dest: /etc/rkhunter.conf.local
+    create: true
+    mode: '0644'
+    marker: "# {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      ALLOWDEVFILE=/dev/shm/libpod*lock*
+
+- name: Update rkhunter
+  become: true
+  register: update_rkhunter_output
+  changed_when: update_rkhunter_output.rc == 0
+  ansible.builtin.shell: |
+    rkhunter --update
+    rkhunter --propupd

@@ -1,0 +1,118 @@
+---
+
+- name: Initialize zdune config
+  hosts: zdune
+  become: true
+  become_user: root
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Install nfs client
+      ansible.builtin.apt:
+        name:
+          - nfs-common
+        state: present
+
+    - name: Create zdauth volume
+      ansible.builtin.file:
+        path: /mnt/local/zdauth
+        state: directory
+        mode: '0755'
+
+    - name: Create mylarr config volume
+      ansible.builtin.file:
+        path: /mnt/local/mylarr
+        state: directory
+        mode: '0755'
+
+    - name: Create vdrive folder in mount
+      ansible.builtin.file:
+        path: /mnt/vdrive
+        state: directory
+        mode: '0755'
+
+    - name: Create local script folder in mount
+      ansible.builtin.file:
+        path: /mnt/local/scripts
+        state: directory
+        mode: '0755'
+
+    - name: Copy net shell script
+      ansible.builtin.copy:
+        src: ../data/net.sh
+        dest: /mnt/local/scripts/net.sh
+        mode: '0755'
+
+    - name: Copy vpn shell script
+      ansible.builtin.copy:
+        src: ../data/vpn.sh
+        dest: /mnt/local/scripts/vpn.sh
+        mode: '0755'
+
+    - name: Copy mount shell script
+      ansible.builtin.copy:
+        src: ../data/mount.sh
+        dest: /mnt/local/scripts/mount.sh
+        mode: '0755'
+
+    - name: Create ddune group
+      ansible.builtin.group:
+        name: ddune
+        gid: 8000
+        state: present
+
+    - name: Create ddune user
+      ansible.builtin.user:
+        name: ddune
+        password: "{{ user_pw | password_hash('sha512') }}"
+        group: ddune
+        create_home: false
+        uid: 8000
+        shell: /usr/sbin/nologin
+        state: present
+
+    - name: Append ddune group to zdune user
+      ansible.builtin.user:
+        name: zdune
+        groups:
+          - ddune
+        append: true
+
+    - name: Create glitchtip volume
+      ansible.builtin.file:
+        path: /mnt/local/glitchtip
+        state: directory
+        mode: '0755'
+
+    - name: Create signoz volume
+      ansible.builtin.file:
+        path: /mnt/local/signoz
+        state: directory
+        mode: '0755'
+
+    - name: Create clickhouse volume
+      ansible.builtin.file:
+        path: /mnt/local/clickhouse
+        state: directory
+        mode: '0755'
+
+    - name: Create zookeeper volume
+      ansible.builtin.file:
+        path: /mnt/local/zookeeper
+        state: directory
+        mode: '0755'
+
+    - name: Create grafana volume
+      ansible.builtin.file:
+        path: /mnt/local/grafana
+        state: directory
+        mode: '0755'
+
+    - name: Create loki volume
+      ansible.builtin.file:
+        path: /mnt/local/loki
+        state: directory
+        mode: '0755'

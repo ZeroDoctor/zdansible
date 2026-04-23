@@ -1,0 +1,23 @@
+---
+
+- name: Create adune
+  hosts: adune
+  become: true
+  become_user: root
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Make traefik directory
+      ansible.builtin.file:
+        path: /mnt/local/traefik
+        state: directory
+        mode: '0755'
+
+    - name: Create traefik ssl folder
+      ansible.builtin.file:
+        path: /etc/ssl/traefik
+        state: directory
+        mode: '0755'

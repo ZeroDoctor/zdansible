@@ -1,0 +1,75 @@
+- name: Install sudo via apt
+  ansible.builtin.apt:
+    name: sudo
+
+- name: Create group for ssh users
+  ansible.builtin.group:
+    name: sshusers
+
+- name: Create group for su users
+  ansible.builtin.group:
+    name: suusers
+
+- name: Create group for sudo users
+  ansible.builtin.group:
+    name: sudousers
+
+- name: Create new user with password, add to groups
+  become: true
+  ansible.builtin.user:
+    name: "{{ hostvars[inventory_hostname].user }}"
+    password: "{{ user_pw | password_hash('sha512') }}"
+    groups: "sshusers, sudousers, suusers"
+    shell: /bin/bash
+
+- name: Limit sudo to sudousers groups
+  become: true
+  ansible.builtin.lineinfile:
+    create: true
+    mode: '0440'
+    path: /etc/sudoers
+    regexp: '^%sudousers'
+    line: '%sudousers   ALL=(ALL:ALL) ALL'
+
+- name: Limit who can use su
+  become: true
+  register: sustd
+  ansible.builtin.shell: |
+    sudo dpkg-statoverride --update --add root suusers 4750 /bin/su
+  changed_when: sustd.rc == 0
+  failed_when:
+    - sustd.rc != 0
+    - '"exist" not in sustd.stderr' # this has to be changed: unsure how to skip the "already exist" error in other languages
+
+- name: Passwordless sudo for new user
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    regexp: '^{{ hostvars[inventory_hostname].user }}'
+    line: '{{ hostvars[inventory_hostname].user }} ALL=(ALL) NOPASSWD: ALL'
+    state: present
+    mode: '0440'
+    create: true
+    validate: 'visudo -cf %s'
+
+- name: Add authorized keys for new user
+  become: true
+  ansible.posix.authorized_key:
+    user: "{{ hostvars[inventory_hostname].user }}"
+    key: "{{ lookup('file', '../../../../data/emergenkey.pub') }}"
+
+- name: Add reset iptables sh file
+  become: true
+  ansible.builtin.copy:
+    src: ../../../../data/reset-iptables.sh
+    dest: ~/reset-iptables.sh
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Run reset iptables
+  become: true
+  become_user: root
+  register: reset
+  ansible.builtin.command: bash /root/reset-iptables.sh
+  changed_when: reset.rc == 0

@@ -1,0 +1,32 @@
+---
+
+- name: Creating bash dune config
+  hosts: clients
+  become: true
+  become_user: root
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Install oh-my-bash
+      args:
+        executable: /bin/bash
+      ansible.builtin.shell: |
+        (sudo rm -r /usr/local/share/oh-my-bash || true) && \
+        sudo bash -c "$(sudo curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh)" --prefix=/usr/local
+      register: podman_output
+      changed_when: podman_output.rc == 0
+
+    - name: Add dune bashrc
+      ansible.builtin.copy:
+        src: ../data/.dune.bashrc
+        dest: /home/{{ hostvars[inventory_hostname].user }}/.bashrc
+        mode: '0644'
+
+    - name: Add root bashrc
+      ansible.builtin.copy:
+        src: ../data/.root.bashrc
+        dest: /root/.bashrc
+        mode: '0644'

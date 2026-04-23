@@ -1,0 +1,65 @@
+- name: Secure ssh configuration
+  become: true
+  ansible.builtin.copy:
+    src: ../../../../data/sshd_config
+    dest: /etc/ssh/sshd_config
+    mode: '0644'
+
+- name: Secure ssh configuration part 2
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    create: true
+    mode: '0644'
+  loop:
+    - { regexp: '^AllowGroups', line: 'AllowGroups sshusers' }
+    - { regexp: '^ClientAliveCountMax', line: 'ClientAliveCountMax 0'}
+    - { regexp: '^ClientAliveInterval', line: 'ClientAliveInterval 300'}
+    - { regexp: '^ListenAddress', line: 'ListenAddress 0.0.0.0'}
+    - { regexp: '^LoginGraceTime', line: 'LoginGraceTime 0'}
+    - { regexp: '^MaxAuthTries', line: 'MaxAuthTries 5'}
+    - { regexp: '^MaxSessions', line: 'MaxSessions 5'}
+    - { regexp: '^MaxStartups', line: 'MaxStartups 3:50:10'}
+    - { regexp: '^PasswordAuthentication', line: 'PasswordAuthentication no'}
+    - { regexp: '^Port', line: 'Port {{ ssh_port }}'}
+    - { regexp: '^PermitRootLogin', line: 'PermitRootLogin no'}
+    - { regexp: '^X11Forwarding', line: 'X11Forwarding no'}
+    - { regexp: '^Subsystem', line: 'Subsystem sftp  internal-sftp -f AUTHPRIV -l INFO'}
+    - { regexp: '^PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+
+- name: Remove short diffie diffie-hellman
+  become: true
+  ansible.builtin.shell: |
+    set -o pipefail && awk '$5 >= 3071' /etc/ssh/moduli | sudo tee /etc/ssh/moduli.tmp
+    mv /etc/ssh/moduli.tmp /etc/ssh/moduli
+  register: diffie_output
+  changed_when: diffie_output.rc == 0
+  args:
+    executable: /bin/bash
+  notify: Restart ssh service
+
+- name: Check if socket stream ssh file exists
+  ansible.builtin.stat:
+    path: /lib/systemd/system/ssh.socket
+  register: ssh_socket_file
+
+- name: Remove socket stream port ssh
+  become: true
+  ansible.builtin.lineinfile:
+    path: /lib/systemd/system/ssh.socket
+    regexp: '^ListenStream=22'
+    state: absent
+  when: ssh_socket_file.stat.exists
+
+- name: Add socket stream port ssh
+  become: true
+  ansible.builtin.blockinfile:
+    path: /lib/systemd/system/ssh.socket
+    insertafter: '\[Socket\]'
+    block: |
+      ListenStream=
+      ListenStream=2222
+  when: ssh_socket_file.stat.exists
+  notify: Restart ssh socket service

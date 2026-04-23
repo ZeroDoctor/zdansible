@@ -1,0 +1,20 @@
+---
+- name: Main-Playbook
+  hosts: all
+  remote_user: "{{ hostvars[inventory_hostname].user }}"
+  gather_facts: true
+
+  vars_files: 
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  roles:
+    - packages
+    - ssh
+    - password-quality
+    - unattended-upgrades
+    - firewall
+    - mail
+    - rkhunter
+    - auditd
+    - lynis

@@ -1,0 +1,41 @@
+- name: Prepare lynis installation
+  become: true
+  register: lynis_output
+  changed_when: lynis_output.rc == 0
+  args:
+    executable: /bin/bash
+  ansible.builtin.shell: |
+    set -o pipefail && wget -O - https://packages.cisofy.com/keys/cisofy-software-public.key | sudo apt-key add -
+    set -o pipefail && echo "deb https://packages.cisofy.com/community/lynis/deb/ stable main" | sudo tee /etc/apt/sources.list.d/cisofy-lynis.list
+
+- name: Update apt cache
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    upgrade: true
+  register: apt_update_upgrade
+  retries: 10
+  delay: 10
+  until: apt_update_upgrade is succeeded
+
+- name: Upgrade packages
+  become: true
+  ansible.builtin.apt:
+    upgrade: true
+
+- name: Install lynis
+  become: true
+  ansible.builtin.apt:
+    name: lynis
+    state: present
+
+- name: Update and run first lynis audit
+  become: true
+  register: lynis_first_output
+  changed_when: lynis_first_output.rc == 0
+  args:
+    executable: /bin/bash
+  ansible.builtin.shell: |
+    lynis update info
+    set -o pipefail && lynis audit system | ansi2html -l > /tmp/lynis-report.html

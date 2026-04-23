@@ -1,0 +1,34 @@
+---
+- name: Create wg clients
+  hosts: clients
+  become: true
+  become_user: root
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Add authorized key
+      ansible.posix.authorized_key:
+        user: "{{ hostvars[inventory_hostname].user }}"
+        state: present
+        manage_dir: true
+        key: "{{ lookup('file', '../data/emergenkey.pub') }}"
+
+    - name: Generate private key
+      args:
+        executable: /bin/bash
+      ansible.builtin.shell:
+        cmd: set -o pipefail && umask 077 && wg genkey | tee privatekey | wg pubkey > publickey
+        chdir: /etc/wireguard
+        creates: /etc/wireguard/publickey
+
+    - name: Get public key fact
+      ansible.builtin.command: cat /etc/wireguard/publickey
+      register: publickey_contents
+      changed_when: false
+
+    - name: Set public key fact
+      ansible.builtin.set_fact:
+        pubkey: "{{ publickey_contents.stdout }}"

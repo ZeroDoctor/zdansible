@@ -1,0 +1,160 @@
+---
+
+- name: Initialize hosts
+  hosts: all
+  remote_user: "{{ hostvars[inventory_hostname].user }}"
+  become: true
+
+  vars_files:
+    - vars/vars.yaml
+    - vars/vars.secrets.yaml
+
+  pre_tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Upgrade apt package
+      ansible.builtin.apt:
+        upgrade: full
+        cache_valid_time: 3600
+
+  tasks:
+    - name: Create podman group
+      ansible.builtin.group:
+        name: podman
+        state: present
+
+    - name: Add podman source
+      register: podman_output
+      changed_when: podman_output.rc == 0
+      args:
+        executable: /bin/bash
+      ansible.builtin.shell: |
+        set -o pipefail && \
+        sudo echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/unstable/xUbuntu_22.04/ /" | \
+        sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:unstable.list && \
+        sudo curl -fsSL  https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/unstable/xUbuntu_22.04/Release.key | \
+        sudo gpg --dearmor | \
+        sudo tee /etc/apt/trusted.gpg.d/devel_kubic_libcontainers_unstable.gpg > /dev/null && \
+        sudo apt update
+      when: ansible_facts['lsb']['release'] == "23.10" or ansible_facts['lsb']['release'] == "22.04"
+
+    - name: Install podman and unzip
+      ansible.builtin.apt:
+        name:
+          - podman
+          - unzip
+        state: present
+
+    - name: Create nomad plugin directory
+      ansible.builtin.file:
+        path: /opt/nomad/plugins
+        state: directory
+        mode: '0755'
+
+    - name: Download and install nomad plugin directory x86_64
+      ansible.builtin.unarchive:
+        src: https://releases.hashicorp.com/nomad-driver-podman/0.6.1/nomad-driver-podman_0.6.1_linux_amd64.zip
+        dest: /opt/nomad/plugins
+        remote_src: true
+      when: ansible_architecture == "x86_64"
+
+    - name: Download and install nomad plugin directory arm64
+      ansible.builtin.unarchive:
+        src: https://releases.hashicorp.com/nomad-driver-podman/0.6.1/nomad-driver-podman_0.6.1_linux_arm64.zip
+        dest: /opt/nomad/plugins
+        remote_src: true
+      when: ansible_architecture == "aarch64"
+
+    - name: Get host lsb
+      ansible.builtin.shell: echo $(lsb_release -cs)
+      register: lsb_arch
+      changed_when: false
+
+    - name: Add hashicorp source
+      register: add_hashicorp_output
+      changed_when: add_hashicorp_output.rc == 0
+      args:
+        executable: /bin/bash
+      ansible.builtin.shell: |
+        set -o pipefail && \
+        echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com {{ lsb_arch.stdout }} main" | \
+        sudo tee /etc/apt/sources.list.d/hashicorp.list && \
+        sudo curl -fsSL  https://apt.releases.hashicorp.com/gpg | \
+        sudo gpg --dearmor | \
+        sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null && \
+        sudo apt update
+      when: ansible_facts['lsb']['release'] == "23.10" or ansible_facts['lsb']['release'] == "22.04"
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install hashicorp consul nomad apt
+      ansible.builtin.apt:
+        name:
+          - consul
+          - nomad
+        state: present
+      when: ansible_facts['lsb']['release'] == "23.10" or ansible_facts['lsb']['release'] == "22.04"
+
+    - name: Download and Install consul
+      ansible.builtin.unarchive:
+        src: https://releases.hashicorp.com/consul/1.18.1/consul_1.18.1_linux_arm64.zip
+        dest: /usr/bin
+        remote_src: true
+      when: ansible_facts['lsb']['release'] == "24.04" and ansible_architecture == "aarch64"
+
+    - name: Download and Install nomad
+      ansible.builtin.unarchive:
+        src: https://releases.hashicorp.com/nomad/1.7.7/nomad_1.7.7_linux_arm64.zip
+        dest: /usr/bin
+        remote_src: true
+      when: ansible_facts['lsb']['release'] == "24.04" and ansible_architecture == "aarch64"
+
+    - name: Add consul service
+      ansible.builtin.copy:
+        src: ./data/consul.service
+        dest: /etc/systemd/system/consul.service
+        mode: '0644'
+
+    - name: Add nomad service
+      ansible.builtin.copy:
+        src: ./data/nomad.service
+        dest: /etc/systemd/system/nomad.service
+        mode: '0644'
+
+    - name: Install wireguard
+      ansible.builtin.apt:
+        name:
+          - wireguard
+        state: present
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Update podman registries
+      ansible.builtin.copy:
+        src: ./data/registries.conf
+        dest: /etc/containers/registries.conf
+        mode: '0644'
+
+    - name: Remove resolv file
+      ansible.builtin.file:
+        path: /etc/resolv.conf
+        state: absent
+
+    - name: Update resolv config file
+      ansible.builtin.copy:
+        src: ./data/resolv.conf
+        dest: /etc/resolv.conf
+        mode: '0644'
+
+    - name: Update host name
+      ansible.builtin.hostname:
+        name: "{{ hostvars[inventory_hostname].host }}"

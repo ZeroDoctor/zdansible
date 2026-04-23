@@ -1,0 +1,37 @@
+---
+
+- name: Initialize wg clients
+  import_playbook: setup.yaml
+
+- name: Create wg server
+  hosts: mdune
+  become: true
+  become_user: root
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Create server wireguard config
+      ansible.builtin.template:
+        dest: /etc/wireguard/dune.conf
+        src: server.conf.tmpl
+        owner: root
+        group: root
+        mode: '0600'
+      notify: Reload wireguard config
+
+    - name: Start wireguard and enable on boot
+      ansible.builtin.systemd:
+        name: wg-quick@dune
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload wireguard config
+      ansible.builtin.shell: wg syncconf dune <(wg-quick strip dune)
+      register: wg_output
+      changed_when: wg_output.rc == 0
+      args:
+        executable: /bin/bash

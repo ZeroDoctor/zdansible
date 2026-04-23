@@ -1,0 +1,6 @@
+- name: Configure unattended upgrades to only install security upgrades
+  become: true
+  ansible.builtin.copy:
+    src: ../../../../data/51myunattended-upgrades
+    dest: /etc/apt/apt.conf.d/51myunattended-upgrades
+    mode: '0644'

@@ -1,0 +1,39 @@
+- name: Update apt cache
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    upgrade: true
+  register: apt_update_upgrade
+  retries: 10
+  delay: 10
+  until: apt_update_upgrade is succeeded
+
+- name: Upgrade packages
+  become: true
+  ansible.builtin.apt:
+    upgrade: true
+
+- name: Install packages
+  become: true
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - host
+      - kbtin
+      - ntp
+      - libpam-pwquality
+      - unattended-upgrades
+      - apt-listchanges
+      - apticron
+      - ufw
+      - psad
+      - fail2ban
+      - msmtp
+      - msmtp-mta
+      - mailutils
+      - rkhunter
+      - auditd
+      - audispd-plugins
+    state: present

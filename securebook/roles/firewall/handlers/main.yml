@@ -1,0 +1,21 @@
+- name: Restart ufw service
+  become: true
+  ansible.builtin.service:
+    name: ufw
+    state: restarted
+
+- name: Restart psad service
+  become: true
+  ansible.builtin.service:
+    name: psad
+    state: restarted
+
+- name: Restart fail2ban service
+  become: true
+  ansible.builtin.service:
+    name: fail2ban
+    state: restarted
+
+- name: Reboot machine
+  become: true
+  ansible.builtin.reboot:

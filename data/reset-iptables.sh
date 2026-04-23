@@ -1,0 +1,30 @@
+#!/bin/bash
+
+echo "resetting tables..."
+
+IPTABLES="$(which iptables)"
+
+# RESET DEFAULT POLICIES
+$IPTABLES -P INPUT ACCEPT
+$IPTABLES -P FORWARD ACCEPT
+$IPTABLES -P OUTPUT ACCEPT
+$IPTABLES -t nat -P PREROUTING ACCEPT
+$IPTABLES -t nat -P POSTROUTING ACCEPT
+$IPTABLES -t nat -P OUTPUT ACCEPT
+$IPTABLES -t mangle -P PREROUTING ACCEPT
+$IPTABLES -t mangle -P OUTPUT ACCEPT
+
+# FLUSH ALL RULES, ERASE NON-DEFAULT CHAINS
+$IPTABLES -F
+$IPTABLES -X
+$IPTABLES -t nat -F
+$IPTABLES -t nat -X
+$IPTABLES -t mangle -F
+$IPTABLES -t mangle -X
+
+$IPTABLES -A INPUT -s 192.168.1.0/24 -j ACCEPT
+
+# Allow all established/related traffic so replies can get back out
+$IPTABLES -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+echo "done."

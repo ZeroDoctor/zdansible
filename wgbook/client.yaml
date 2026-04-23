@@ -1,0 +1,53 @@
+---
+
+- name: Initialize wg clients
+  import_playbook: setup.yaml
+
+- name: Create wg clients
+  hosts: clients
+  become: true
+  become_user: root
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Create client wireguard config
+      ansible.builtin.template:
+        dest: /etc/wireguard/dune.conf
+        src: client.conf.tmpl
+        owner: root
+        group: root
+        mode: '0600'
+      notify: Restart wireguard
+
+    - name: Start wireguard and enable on boot
+      ansible.builtin.systemd:
+        name: wg-quick@dune
+        enabled: true
+        state: started
+
+    - name: Get wg network info
+      ansible.builtin.command: ip -4 addr show dune
+      register: wg_net_info
+      changed_when: false
+
+    - name: Parse wg ip from network info
+      ansible.builtin.command:
+        cmd: grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+        stdin: "{{ wg_net_info.stdout }}"
+      register: wg_ip_address
+      changed_when: false
+
+    - name: Set local network ip address
+      ansible.builtin.set_fact:
+        wg_ip: "{{ wg_ip_address.stdout }}"
+
+  handlers:
+    - name: Restart wireguard
+      ansible.builtin.shell: wg-quick down dune; wg-quick up dune
+      args:
+        executable: /bin/bash
+      register: restart
+      changed_when: restart.rc == 0

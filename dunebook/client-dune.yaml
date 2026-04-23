@@ -1,0 +1,53 @@
+---
+
+- name: Initialize dune host
+  import_playbook: ../wgbook/client.yaml
+
+- name: Create dune
+  hosts: clients
+  become: true
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Create drone volume folder
+      ansible.builtin.file:
+        path: /root/volume/drone
+        state: directory
+        mode: '0755'
+
+    - name: Create consul client config
+      ansible.builtin.template:
+        dest: /etc/consul.d/consul.hcl
+        src: consul-client.hcl.tmpl
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Start consul and enable on boot
+      ansible.builtin.systemd:
+        name: consul
+        enabled: true
+        state: started
+
+    - name: Create nomad client config
+      ansible.builtin.template:
+        dest: /etc/nomad.d/nomad.hcl
+        src: nomad-client.hcl.tmpl
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create traefik directory
+      ansible.builtin.file:
+        path: /etc/ssl/traefik
+        state: directory
+        mode: '0755'
+
+    - name: Start nomad and enable on boot
+      ansible.builtin.systemd:
+        name: nomad
+        enabled: true
+        state: started

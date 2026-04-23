@@ -1,0 +1,50 @@
+# datacenter
+#datacenter = "my-dc-1"
+
+# data_dir
+data_dir = "/opt/consul"
+
+# client_addr
+client_addr = "0.0.0.0"
+
+# ui
+#ui_config{
+#  enabled = true
+#}
+
+# server
+server = false
+
+# Bind addr
+#bind_addr = "[::]" # Listen on all IPv6
+bind_addr = "{{ wg_ip }}" # Listen on all IPv4
+
+# Advertise addr - if you want to point clients to a different address than bind or LB.
+advertise_addr = "{{ wg_ip }}"
+
+ports {
+  grpc = 8502
+}
+
+# Enterprise License
+# As of 1.10, Enterprise requires a license_path and does not have a short trial.
+#license_path = "/etc/consul.d/consul.hclic"
+
+# bootstrap_expect
+#bootstrap_expect=1
+
+# encrypt
+#encrypt = "..."
+
+# retry_join
+#retry_join = ["consul.domain.internal"]
+{% for host in groups['mdune'] %}
+retry_join = ["10.0.0.{{ hostvars[host].id }}:8301"]
+{% endfor %}
+#retry_join = ["[::1]:8301"]
+#retry_join = ["consul.domain.internal", "10.0.4.67"]
+# Cloud Auto-join examples:
+# More details - https://www.consul.io/docs/agent/cloud-auto-join
+#retry_join = ["provider=aws tag_key=... tag_value=..."]
+#retry_join = ["provider=azure tag_name=... tag_value=... tenant_id=... client_id=... subscription_id=... secret_access_key=..."]
+#retry_join = ["provider=gce project_name=... tag_value=..."]

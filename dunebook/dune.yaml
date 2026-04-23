@@ -1,0 +1,181 @@
+---
+
+- name: Allow ip addresses for houston
+  hosts: net_houston
+  become: true
+  become_user: root
+
+  tasks:
+    - name: UFW allow from local to houston outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[inventory_hostname].inventory_hostname }}"
+        to_ip: "{{ item }}"
+      loop: "{{ groups['net_houston'] }}"
+
+    - name: UFW allow from houston to local outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ item }}"
+        to_ip: "{{ hostvars[inventory_hostname].inventory_hostname }}"
+      loop: "{{ groups['net_houston'] }}"
+
+    - name: UFW allow from houston to longview outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[inventory_hostname].inventory_hostname }}"
+        to_ip: "{{ hostvars[item].ip }}"
+      loop: "{{ groups['net_longview'] }}"
+
+    - name: UFW allow from longview to houston outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[item].ip }}"
+        to_ip: "{{ hostvars[inventory_hostname].inventory_hostname }}"
+      loop: "{{ groups['net_longview'] }}"
+
+    - name: UFW allow from houston to linode outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[inventory_hostname].inventory_hostname }}"
+        to_ip: "{{ hostvars[item].ip }}"
+      loop: "{{ groups['net_vps'] }}"
+
+    - name: UFW allow from linode to houston outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[item].ip }}"
+        to_ip: "{{ hostvars[inventory_hostname].inventory_hostname }}"
+      loop: "{{ groups['net_vps'] }}"
+
+- name: Allow dune ip addresses for linode
+  hosts: net_vps
+  become: true
+  become_user: root
+
+  tasks:
+    - name: UFW allow from linode to houston outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[inventory_hostname].ip }}"
+        to_ip: "{{ hostvars[item].ip }}"
+      loop: "{{ groups['net_houston'] }}"
+
+    - name: UFW allow from houston to linode outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[item].ip }}"
+        to_ip: "{{ hostvars[inventory_hostname].ip }}"
+      loop: "{{ groups['net_houston'] }}"
+
+    - name: UFW allow from linode to longview outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[inventory_hostname].inventory_hostname }}"
+        to_ip: "{{ hostvars[item].ip }}"
+      loop: "{{ groups['net_longview'] }}"
+
+    - name: UFW allow from longview to linode outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[item].ip }}"
+        to_ip: "{{ hostvars[inventory_hostname].inventory_hostname }}"
+      loop: "{{ groups['net_longview'] }}"
+
+    - name: UFW allow from local to linode outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[inventory_hostname].inventory_hostname }}"
+        to_ip: "{{ item }}"
+      loop: "{{ groups['net_vps'] }}"
+
+    - name: UFW allow from linode to local outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ item }}"
+        to_ip: "{{ hostvars[inventory_hostname].inventory_hostname }}"
+      loop: "{{ groups['net_vps'] }}"
+
+- name: Allow dune ip addresses for longview
+  hosts: net_longview
+  become: true
+  become_user: root
+
+  tasks:
+    - name: UFW allow from longview to houston outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[inventory_hostname].ansible_all_ipv4_addresses[0] }}"
+        to_ip: "{{ hostvars[item].ip }}"
+      loop: "{{ groups['net_houston'] }}"
+
+    - name: UFW allow from houston to longview outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[item].ip }}"
+        to_ip: "{{ hostvars[inventory_hostname].ansible_all_ipv4_addresses[0] }}"
+      loop: "{{ groups['net_houston'] }}"
+
+    - name: UFW allow from local to longview outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[inventory_hostname].ansible_all_ipv4_addresses[0] }}"
+        to_ip: "{{ hostvars[item].ip }}"
+      loop: "{{ groups['net_longview'] }}"
+
+    - name: UFW allow from longview to local outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[item].ip }}"
+        to_ip: "{{ hostvars[inventory_hostname].ansible_all_ipv4_addresses[0] }}"
+      loop: "{{ groups['net_longview'] }}"
+
+    - name: UFW allow from longview to linode outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[inventory_hostname].ansible_all_ipv4_addresses[0] }}"
+        to_ip: "{{ hostvars[item].ip }}"
+      loop: "{{ groups['net_vps'] }}"
+
+    - name: UFW allow from linode to longview outgoing ip
+      become: true
+      community.general.ufw:
+        rule: allow
+        direction: out
+        from_ip: "{{ hostvars[item].ip }}"
+        to_ip: "{{ hostvars[inventory_hostname].ansible_all_ipv4_addresses[0] }}"
+      loop: "{{ groups['net_vps'] }}"

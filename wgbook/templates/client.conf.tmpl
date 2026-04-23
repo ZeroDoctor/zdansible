@@ -1,0 +1,61 @@
+# {{ ansible_managed }}
+[Interface]
+Address = 10.0.0.{{ hostvars[inventory_hostname].id }}/32
+ListenPort = 51820
+
+# Load your privatekey from file
+PostUp = wg set %i private-key /etc/wireguard/privatekey
+
+# Also ping the vpn server to ensure the tunnel is initialized
+{% for host in groups['mdune'] %}
+PostUp = ping -c1 10.0.0.{{ hostvars[host].id }}
+{% endfor %}
+
+{% for host in groups['mdune'] %}
+[Peer]
+PublicKey = {{ server_pubkey }}
+Endpoint = {{ hostvars[host].ip }}:51820 # {{ hostvars[host].host }}
+
+# AllowedIPs = 10.0.0.0/24,10.110.0.0/20
+AllowedIPs = 10.0.0.0/24
+PersistentKeepalive = 25
+
+{% endfor %}
+
+
+# Peers below are "clients"
+
+{% if 'net_houston' in group_names %}
+
+{% for host in groups['net_houston'] if host != inventory_hostname %}
+[Peer]
+PublicKey = {{ hostvars[host].pubkey }}
+AllowedIPs = 10.0.0.{{ hostvars[host].id }}/32
+Endpoint = {{ hostvars[host].inventory_hostname }}:51820 # {{ hostvars[host].host }}
+PersistentKeepalive = 25
+
+{% endfor %}
+
+{% for host in groups['all'] if 'mdune' not in hostvars[host].group_names and 'net_houston' not in hostvars[host].group_names and host != inventory_hostname %}
+[Peer]
+PublicKey = {{ hostvars[host].pubkey }}
+AllowedIPs = 10.0.0.{{ hostvars[host].id }}/32
+Endpoint = {{ hostvars[host].ip }}:51820 # {{ hostvars[host].host }}
+PersistentKeepalive = 25
+
+{% endfor %}
+
+{% else %}
+
+{% for host in groups['all'] if 'mdune' not in hostvars[host].group_names and host != inventory_hostname %}
+[Peer]
+PublicKey = {{ hostvars[host].pubkey }}
+AllowedIPs = 10.0.0.{{ hostvars[host].id }}/32
+Endpoint = {{ hostvars[host].ip }}:51820 # {{ hostvars[host].host }}
+PersistentKeepalive = 25
+
+{% endfor %}
+
+{% endif %}
+
+
