@@ -1,22 +1,22 @@
 ---
 
-- name: Initialize wg clients
+- name: Initialize wg spokes
   import_playbook: setup.yaml
 
-- name: Create wg clients
+- name: Create wg spokes
   hosts: clients
   become: true
   become_user: root
 
   vars_files:
-    - ../vars/vars.yaml
-    - ../vars/vars.secrets.yaml
+    - ../../vars/vars.yaml
+    - ../../vars/vars.secrets.yaml
 
   tasks:
-    - name: Create client wireguard config
+    - name: Create spoke wireguard config
       ansible.builtin.template:
         dest: /etc/wireguard/dune.conf
-        src: client.conf.tmpl
+        src: spoke.conf.j2
         owner: root
         group: root
         mode: '0600'

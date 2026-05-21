@@ -1,0 +1,7 @@
+---
+
+- name: Detect SSH port
+  import_playbook: detect-port.yaml
+
+- name: Run secure requirements
+  import_playbook: ../securebook/requirements-playbook.yml

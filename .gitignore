@@ -1,0 +1,20 @@
+.vscode/
+venv/
+
+# Ansible data
+_inventory
+.inventory.toml
+.inventory.*.toml
+.ansible/
+
+# Script files
+ansible/data/vpn.sh
+ansible/data/mount.sh
+ansible/data/net.sh
+
+# SSH Secrets
+ansible/data/emergenkey
+ansible/data/emergenkey.pub
+ansible/data/masterkey
+ansible/data/masterkey.pub
+ansible/data/sshd_config

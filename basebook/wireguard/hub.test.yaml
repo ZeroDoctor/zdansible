@@ -1,22 +1,25 @@
 ---
 
-- name: Initialize wg clients
+- name: Detect SSH port
+  import_playbook: ../detect-port.yaml
+
+- name: Initialize wg spokes
   import_playbook: setup.yaml
 
-- name: Create wg server
-  hosts: mdune
+- name: Create wg hub
+  hosts: tdune
   become: true
   become_user: root
 
   vars_files:
-    - ../vars/vars.yaml
-    - ../vars/vars.secrets.yaml
+    - ../../vars/vars.yaml
+    - ../../vars/vars.secrets.yaml
 
   tasks:
-    - name: Create server wireguard config
+    - name: Create hub wireguard config
       ansible.builtin.template:
         dest: /etc/wireguard/dune.conf
-        src: server.conf.tmpl
+        src: hub.test.conf.j2
         owner: root
         group: root
         mode: '0600'

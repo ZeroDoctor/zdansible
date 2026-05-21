@@ -1,5 +1,8 @@
 ---
 
+- name: Detect SSH port
+  import_playbook: ../basebook/detect-port.yaml
+
 - name: Creating mdune config
   hosts: mdune
   become: true
@@ -69,7 +72,7 @@
     - name: Create vault server config
       ansible.builtin.template:
         dest: /etc/vault.d/vault.hcl
-        src: vault-server.hcl.tmpl
+        src: vault-server.hcl.j2
         owner: vault
         group: vault
         mode: '0644'
@@ -85,7 +88,7 @@
     - name: Create consul server config
       ansible.builtin.template:
         dest: /etc/consul.d/consul.hcl
-        src: consul-server.hcl.tmpl
+        src: consul-server.hcl.j2
         owner: root
         group: root
         mode: '0644'
@@ -99,7 +102,7 @@
     - name: Create nomad server config
       ansible.builtin.template:
         dest: /etc/nomad.d/nomad.hcl
-        src: nomad-server.hcl.tmpl
+        src: nomad-server.hcl.j2
         owner: root
         group: root
         mode: '0644'
@@ -113,7 +116,7 @@
     - name: Update resolved with wg ip
       ansible.builtin.template:
         dest: /etc/resolv.conf
-        src: resolv.conf.tmpl
+        src: resolv.conf.j2
         owner: root
         group: root
         mode: '0644'
@@ -133,7 +136,7 @@
     - name: Add dnsmasq consul config
       ansible.builtin.template:
         dest: /etc/dnsmasq.d/10-consul.conf
-        src: 10-consul.conf.tmpl
+        src: 10-consul.conf.j2
         owner: root
         group: root
         mode: '0644'

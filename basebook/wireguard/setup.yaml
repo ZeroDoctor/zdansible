@@ -5,8 +5,8 @@
   become_user: root
 
   vars_files:
-    - ../vars/vars.yaml
-    - ../vars/vars.secrets.yaml
+    - ../../vars/vars.yaml
+    - ../../vars/vars.secrets.yaml
 
   tasks:
     - name: Add authorized key
@@ -14,7 +14,7 @@
         user: "{{ hostvars[inventory_hostname].user }}"
         state: present
         manage_dir: true
-        key: "{{ lookup('file', '../data/emergenkey.pub') }}"
+        key: "{{ lookup('file', '../../data/emergenkey.pub') }}"
 
     - name: Generate private key
       args:

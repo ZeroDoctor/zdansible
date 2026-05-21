@@ -1,5 +1,8 @@
 ---
 
+- name: Detect SSH port
+  import_playbook: ../basebook/detect-port.yaml
+
 - name: Initialize vdune config
   hosts: vdune
   become: true

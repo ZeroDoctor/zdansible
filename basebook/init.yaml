@@ -1,13 +1,16 @@
 ---
 
+- name: Detect SSH port
+  import_playbook: detect-port.yaml
+
 - name: Initialize hosts
   hosts: all
   remote_user: "{{ hostvars[inventory_hostname].user }}"
   become: true
 
   vars_files:
-    - vars/vars.yaml
-    - vars/vars.secrets.yaml
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
 
   pre_tasks:
     - name: Update apt cache
@@ -117,13 +120,13 @@
 
     - name: Add consul service
       ansible.builtin.copy:
-        src: ./data/consul.service
+        src: ../data/consul.service
         dest: /etc/systemd/system/consul.service
         mode: '0644'
 
     - name: Add nomad service
       ansible.builtin.copy:
-        src: ./data/nomad.service
+        src: ../data/nomad.service
         dest: /etc/systemd/system/nomad.service
         mode: '0644'
 
@@ -140,7 +143,7 @@
 
     - name: Update podman registries
       ansible.builtin.copy:
-        src: ./data/registries.conf
+        src: ../data/registries.conf
         dest: /etc/containers/registries.conf
         mode: '0644'
 
@@ -151,7 +154,7 @@
 
     - name: Update resolv config file
       ansible.builtin.copy:
-        src: ./data/resolv.conf
+        src: ../data/resolv.conf
         dest: /etc/resolv.conf
         mode: '0644'
 

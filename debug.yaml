@@ -1,3 +1,8 @@
+---
+
+- name: Detect SSH port
+  import_playbook: basebook/detect-port.yaml
+
 - name: Debugging
   hosts: all
 

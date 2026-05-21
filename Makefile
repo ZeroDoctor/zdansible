@@ -6,7 +6,7 @@ SSH_USER?=root
 install:
 	python3 -m venv venv
 	. venv/bin/activate && \
-	pip install passlib ansible toml
+	pip install passlib ansible ansible-lint toml
 
 	sudo apt update
 	sudo apt install software-properties-common -y
@@ -15,123 +15,100 @@ install:
 	ansible --version
 	ansible-playbook --version
 
-.PHONY: provide
-provide: provide-init provide-dune provide-mdune provide-adune provide-vdune provide-zdune provide-bash
-	
-.PHONY: provide-init
-provide-init:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml init.yaml -e 'ansible_ssh_port=2222' && \
-	popd
-
-.PHONY: provide-bash
-provide-bash:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml dunebook/bash-dune.yaml -e 'ansible_ssh_port=2222' && \
-	popd
-
-
-.PHONY: provide-dune
-provide-dune:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml dunebook/dune.yaml -e 'ansible_ssh_port=2222' && \
-	popd
-
-.PHONY: provide-mdune
-provide-mdune:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml dunebook/mdune.yaml -e 'ansible_ssh_port=2222' && \
-	popd
-
-.PHONY: provide-tdune
-provide-tdune:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml dunebook/tdune.yaml -e 'ansible_ssh_port=2222' && \
-	popd
-	
-.PHONY: provide-adune
-provide-adune:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml dunebook/adune.yaml -e 'ansible_ssh_port=2222' && \
-	popd
-	
-.PHONY: provide-vdune
-provide-vdune:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml dunebook/vdune.yaml -e 'ansible_ssh_port=2222' && \
-	popd
-	
-.PHONY: provide-zdune
-provide-zdune:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml dunebook/zdune.yaml -e 'ansible_ssh_port=2222' && \
-	popd
-
-.PHONY: wg-server
-wg-server:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml wgbook/server.yaml -e 'ansible_ssh_port=2222' && \
-	popd
-
-.PHONY: wg-client
-wg-client: wg-server
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml dunebook/client-dune.yaml -e 'ansible_ssh_port=2222' && \
-	popd
+# ── Secure (vendored) ──────────────────────────────────────────────────────────
 
 .PHONY: secure
 secure: secure-req secure-main
 
 .PHONY: secure-req
 secure-req:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml securebook/requirements-playbook.yml \
-		-e 'ansible_ssh_port=$(SSH_PORT)' && \
-		# -e 'ansible_ssh_user=$(SSH_USER)' && \
-	popd
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml basebook/secure-req.yaml
 
 .PHONY: secure-main
 secure-main:
-	sleep 5 && \
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml securebook/main-playbook.yml \
-		-e 'ansible_ssh_port=$(SSH_PORT)' && \
-		# -e 'ansible_ssh_user=$(SSH_USER)' && \
-	popd
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml basebook/secure-main.yaml
+
+# ── Base / Generic ─────────────────────────────────────────────────────────────
+
+.PHONY: base
+base: base-init base-network base-wg-hub base-services
+
+.PHONY: base-init
+base-init:
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml basebook/init.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+.PHONY: base-network
+base-network:
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml basebook/network.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+.PHONY: base-wg-hub
+base-wg-hub:
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml basebook/wireguard/hub.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+.PHONY: base-wg-hub-test
+base-wg-hub-test:
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml basebook/wireguard/hub.test.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+.PHONY: base-services
+base-services: base-wg-hub
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml basebook/services.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+# ── Specific / Per-role ────────────────────────────────────────────────────────
+
+.PHONY: provide
+provide: provide-mdune provide-adune provide-vdune provide-zdune
+
+.PHONY: provide-mdune
+provide-mdune:
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml dunebook/mdune.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+.PHONY: provide-tdune
+provide-tdune:
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml dunebook/tdune.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+.PHONY: provide-adune
+provide-adune:
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml dunebook/adune.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+.PHONY: provide-vdune
+provide-vdune:
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml dunebook/vdune.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+.PHONY: provide-zdune
+provide-zdune:
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml dunebook/zdune.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
 
 .PHONY: vars
 vars:
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-inventory --list -i .inventory.toml && \
-	popd
-	
+	. venv/bin/activate && \
+	ansible-inventory --list -i .inventory.toml
+
 .PHONY: debug
 debug:
-	pushd ./ansible && \
-	. ../venv/bin/activate && \
-	ansible-playbook -i .inventory.toml debug.yaml -e 'ansible_ssh_port=2222' && \
-	popd
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml debug.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'

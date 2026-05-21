@@ -1,0 +1,7 @@
+---
+
+- name: Detect SSH port
+  import_playbook: detect-port.yaml
+
+- name: Run secure hardening
+  import_playbook: ../securebook/main-playbook.yml

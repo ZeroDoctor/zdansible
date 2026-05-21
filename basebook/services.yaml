@@ -1,9 +1,12 @@
 ---
 
-- name: Initialize dune host
-  import_playbook: ../wgbook/client.yaml
+- name: Detect SSH port
+  import_playbook: detect-port.yaml
 
-- name: Create dune
+- name: Initialize dune host
+  import_playbook: wireguard/spoke.yaml
+
+- name: Create dune services
   hosts: clients
   become: true
 
@@ -21,7 +24,7 @@
     - name: Create consul client config
       ansible.builtin.template:
         dest: /etc/consul.d/consul.hcl
-        src: consul-client.hcl.tmpl
+        src: consul-client.hcl.j2
         owner: root
         group: root
         mode: '0644'
@@ -35,7 +38,7 @@
     - name: Create nomad client config
       ansible.builtin.template:
         dest: /etc/nomad.d/nomad.hcl
-        src: nomad-client.hcl.tmpl
+        src: nomad-client.hcl.j2
         owner: root
         group: root
         mode: '0644'

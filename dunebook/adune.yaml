@@ -1,5 +1,8 @@
 ---
 
+- name: Detect SSH port
+  import_playbook: ../basebook/detect-port.yaml
+
 - name: Create adune
   hosts: adune
   become: true

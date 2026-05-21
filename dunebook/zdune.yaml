@@ -1,5 +1,8 @@
 ---
 
+- name: Detect SSH port
+  import_playbook: ../basebook/detect-port.yaml
+
 - name: Initialize zdune config
   hosts: zdune
   become: true
@@ -77,8 +80,8 @@
     - name: Append ddune group to zdune user
       ansible.builtin.user:
         name: zdune
-        groups:
-          - ddune
+        # groups:
+        #   - ddune
         append: true
 
     - name: Create glitchtip volume

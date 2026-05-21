@@ -1,0 +1,23 @@
+---
+
+- name: Detect SSH port
+  hosts: all
+  gather_facts: false
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Check if configured SSH port is open
+      ansible.builtin.wait_for:
+        port: "{{ ssh_port }}"
+        host: "{{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}"
+        timeout: 3
+      delegate_to: localhost
+      ignore_errors: true
+      register: ssh_port_check
+
+    - name: Set active SSH port
+      ansible.builtin.set_fact:
+        ansible_port: "{{ ssh_port if not ssh_port_check.failed else 22 }}"

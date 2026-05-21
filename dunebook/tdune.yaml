@@ -1,7 +1,7 @@
 ---
 
-# - name: Initialize wg server
-#   import_playbook: ../wgbook/server.test.yaml
+- name: Detect SSH port
+  import_playbook: ../basebook/detect-port.yaml
 
 - name: Creating tdune config
   hosts: tdune
@@ -133,7 +133,7 @@
       become_user: root
       ansible.builtin.template:
         dest: /etc/vault.d/vault.hcl
-        src: vault-server.hcl.tmpl
+        src: vault-server.hcl.j2
         owner: vault
         group: vault
         mode: '0644'
@@ -157,7 +157,7 @@
     - name: Create consul server config
       ansible.builtin.template:
         dest: /etc/consul.d/consul.hcl
-        src: consul-server.hcl.tmpl
+        src: consul-server.hcl.j2
         owner: consul
         group: consul
         mode: '0644'
@@ -181,7 +181,7 @@
     - name: Create nomad server config
       ansible.builtin.template:
         dest: /etc/nomad.d/nomad.hcl
-        src: nomad-server.hcl.tmpl
+        src: nomad-server.hcl.j2
         owner: nomad
         group: nomad
         mode: '0644'
@@ -206,7 +206,7 @@
       become: true
       ansible.builtin.template:
         dest: /etc/resolv.conf
-        src: resolv.conf.tmpl
+        src: resolv.conf.j2
         owner: root
         group: root
         mode: '0644'
@@ -214,7 +214,7 @@
     - name: Add dnsmasq consul config
       ansible.builtin.template:
         dest: /etc/dnsmasq.d/10-consul.conf
-        src: 10-consul.test.conf.tmpl
+        src: 10-consul.test.conf.j2
         owner: root
         group: root
         mode: '0644'
