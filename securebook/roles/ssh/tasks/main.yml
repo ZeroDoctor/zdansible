@@ -34,8 +34,8 @@
   ansible.builtin.shell: |
     set -o pipefail && awk '$5 >= 3071' /etc/ssh/moduli | sudo tee /etc/ssh/moduli.tmp
     mv /etc/ssh/moduli.tmp /etc/ssh/moduli
-  register: diffie_output
-  changed_when: diffie_output.rc == 0
+  register: ssh_diffie_output
+  changed_when: ssh_diffie_output.rc == 0
   args:
     executable: /bin/bash
   notify: Restart ssh service

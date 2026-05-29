@@ -7,15 +7,16 @@
 [ungrouped.hosts]
 "rt.zerodoc.dev" = { user = "zdune", ip = "96.18.73.74", host = "zpldune", id = 1 }
 "192.168.1.231"  = { user = "tdune", ip = "162.203.120.155", host = "tp0dune", id = 2 }
-"192.168.1.220"  = { user = "vdune", ip = "162.203.120.155", host = "vp0dune", id = 3 }
+"192.168.1.220"  = { user = "vdune", ip = "162.203.120.155", host = "vp0dune", id = 3, extra_users = ["mdune"] }
 "192.168.1.224"  = { user = "zdune", ip = "162.203.120.155", host = "zp0dune", id = 4 }
-"192.168.1.225"  = { user = "zdune", ip = "162.203.120.155", host = "zp1dune", id = 5 }
+"192.168.1.225"  = { user = "zdune", ip = "162.203.120.155", host = "zp1dune", id = 5, extra_users = ["adune"] }
 "192.168.1.226"  = { user = "zdune", ip = "162.203.120.155", host = "zp2dune", id = 6 }
 
 [adune.vars]
 ansible_ssh_user = "adune"
 
 [adune.hosts]
+"192.168.1.225" = { user = "adune", ip = "162.203.120.155" }
 
 [mdune.vars]
 ansible_ssh_user = "mdune"

@@ -3,7 +3,7 @@
   hosts: all
   remote_user: root
 
-  vars_files: 
+  vars_files:
     - ../vars/vars.yaml
     - ../vars/vars.secrets.yaml
 

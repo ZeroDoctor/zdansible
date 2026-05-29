@@ -9,5 +9,4 @@
   tasks:
     - name: Testing
       ansible.builtin.debug:
-        msg: "{{ 'net_houston' not in hostvars[item].group_names or True }}"
-      loop: "{{ groups['net_houston'] }}"
+        var: ansible_facts

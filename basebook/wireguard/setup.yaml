@@ -32,3 +32,14 @@
     - name: Set public key fact
       ansible.builtin.set_fact:
         pubkey: "{{ publickey_contents.stdout }}"
+
+    - name: Get private key fact
+      ansible.builtin.command: cat /etc/wireguard/privatekey
+      register: privatekey_contents
+      changed_when: false
+      no_log: true
+
+    - name: Set private key fact
+      ansible.builtin.set_fact:
+        privkey: "{{ privatekey_contents.stdout }}"
+      no_log: true

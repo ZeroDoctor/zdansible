@@ -9,7 +9,7 @@ install:
 	pip install passlib ansible ansible-lint toml
 
 	sudo apt update
-	sudo apt install software-properties-common -y
+	sudo apt install software-properties-common wireguard-tools -y
 	sudo add-apt-repository --yes --update ppa:ansible/ansible
 	sudo apt install ansible -y
 	ansible --version
@@ -51,6 +51,12 @@ base-network:
 base-wg-hub:
 	. venv/bin/activate && \
 	ansible-playbook -i .inventory.toml basebook/wireguard/hub.yaml \
+		-e 'ansible_ssh_port=$(SSH_PORT)'
+
+.PHONY: base-wg-spoke
+base-wg-spoke:
+	. venv/bin/activate && \
+	ansible-playbook -i .inventory.toml basebook/wireguard/spoke.yaml \
 		-e 'ansible_ssh_port=$(SSH_PORT)'
 
 .PHONY: base-wg-hub-test

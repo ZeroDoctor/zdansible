@@ -14,13 +14,35 @@
   ansible.builtin.group:
     name: sudousers
 
+- name: Create podman group
+  ansible.builtin.group:
+    name: podman
+
 - name: Create new user with password, add to groups
   become: true
   ansible.builtin.user:
     name: "{{ hostvars[inventory_hostname].user }}"
     password: "{{ user_pw | password_hash('sha512') }}"
-    groups: "sshusers, sudousers, suusers"
+    groups: "sshusers, sudousers, suusers, podman"
     shell: /bin/bash
+
+- name: Configure subuid for primary user
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/subuid
+    mode: umask
+    regexp: '^{{ hostvars[inventory_hostname].user }}:'
+    line: '{{ hostvars[inventory_hostname].user }}:100000:65536'
+    create: true
+
+- name: Configure subgid for primary user
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/subgid
+    mode: umask
+    regexp: '^{{ hostvars[inventory_hostname].user }}:'
+    line: '{{ hostvars[inventory_hostname].user }}:100000:65536'
+    create: true
 
 - name: Limit sudo to sudousers groups
   become: true
@@ -33,13 +55,13 @@
 
 - name: Limit who can use su
   become: true
-  register: sustd
+  register: requirements_sustd
   ansible.builtin.shell: |
     sudo dpkg-statoverride --update --add root suusers 4750 /bin/su
-  changed_when: sustd.rc == 0
+  changed_when: requirements_sustd.rc == 0
   failed_when:
-    - sustd.rc != 0
-    - '"exist" not in sustd.stderr' # this has to be changed: unsure how to skip the "already exist" error in other languages
+    - requirements_sustd.rc != 0
+    - '"exist" not in requirements_sustd.stderr' # this has to be changed: unsure how to skip the "already exist" error in other languages
 
 - name: Passwordless sudo for new user
   become: true
@@ -58,6 +80,58 @@
     user: "{{ hostvars[inventory_hostname].user }}"
     key: "{{ lookup('file', '../../../../data/emergenkey.pub') }}"
 
+- name: Create extra users with password, add to groups
+  become: true
+  ansible.builtin.user:
+    name: "{{ item }}"
+    password: "{{ user_pw | password_hash('sha512') }}"
+    groups: "sshusers, sudousers, suusers, podman"
+    shell: /bin/bash
+  loop: "{{ hostvars[inventory_hostname].extra_users | default([]) }}"
+
+- name: Configure subuid for extra users
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/subuid
+    mode: umask
+    regexp: '^{{ item }}:'
+    line: '{{ item }}:{{ 165536 + (ansible_loop.index0 * 65536) }}:65536'
+    create: true
+  loop: "{{ hostvars[inventory_hostname].extra_users | default([]) }}"
+  loop_control:
+    extended: true
+
+- name: Configure subgid for extra users
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/subgid
+    mode: umask
+    regexp: '^{{ item }}:'
+    line: '{{ item }}:{{ 165536 + (ansible_loop.index0 * 65536) }}:65536'
+    create: true
+  loop: "{{ hostvars[inventory_hostname].extra_users | default([]) }}"
+  loop_control:
+    extended: true
+
+- name: Passwordless sudo for extra users
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    regexp: '^{{ item }}'
+    line: '{{ item }} ALL=(ALL) NOPASSWD: ALL'
+    state: present
+    mode: '0440'
+    create: true
+    validate: 'visudo -cf %s'
+  loop: "{{ hostvars[inventory_hostname].extra_users | default([]) }}"
+
+- name: Add authorized keys for extra users
+  become: true
+  ansible.posix.authorized_key:
+    user: "{{ item }}"
+    key: "{{ lookup('file', '../../../../data/emergenkey.pub') }}"
+  loop: "{{ hostvars[inventory_hostname].extra_users | default([]) }}"
+
 - name: Add reset iptables sh file
   become: true
   ansible.builtin.copy:
@@ -70,6 +144,6 @@
 - name: Run reset iptables
   become: true
   become_user: root
-  register: reset
+  register: requirements_reset
   ansible.builtin.command: bash /root/reset-iptables.sh
-  changed_when: reset.rc == 0
+  changed_when: requirements_reset.rc == 0

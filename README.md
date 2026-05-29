@@ -1,5 +1,10 @@
 # zdansible
 
+## Run Playbook
+
+```sh
+make secure base dune
+```
 
 ## Commands Needed
 

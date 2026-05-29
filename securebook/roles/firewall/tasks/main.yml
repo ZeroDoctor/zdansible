@@ -25,7 +25,7 @@
 
 - name: Ufw - allow routing to wg ip
   become: true
-  register: ufw_route
+  register: firewall_ufw_route
   args:
     executable: /bin/bash
   ansible.builtin.shell: |
@@ -33,7 +33,7 @@
     sudo ufw route allow proto tcp from 10.0.0.0/24 to 10.88.0.0/16
     sudo ufw route allow proto udp from 10.0.1.0/24 to 10.88.0.0/16
     sudo ufw route allow proto udp from 10.0.0.0/24 to 10.88.0.0/16
-  changed_when: ufw_route.rc == 0
+  changed_when: firewall_ufw_route.rc == 0
 
 - name: Ufw - allow outgoing test wg ip
   become: true
@@ -188,8 +188,8 @@
 
 - name: Update psad signatures
   become: true
-  register: psad_output
-  changed_when: psad_output.rc == 0
+  register: firewall_psad_output
+  changed_when: firewall_psad_output.rc == 0
   ansible.builtin.shell: |
     psad --sig-update
 

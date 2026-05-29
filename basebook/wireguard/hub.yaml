@@ -25,11 +25,29 @@
         mode: '0600'
       notify: Reload wireguard config
 
-    - name: Start wireguard and enable on boot
+    - name: Enable wireguard on boot
       ansible.builtin.systemd:
         name: wg-quick@dune
         enabled: true
-        state: started
+
+    - name: Check if wireguard interface exists
+      ansible.builtin.command: ip link show dune
+      register: wg_iface_check
+      changed_when: false
+      failed_when: false
+
+    - name: Start or restart wireguard
+      ansible.builtin.systemd:
+        name: wg-quick@dune
+        state: "{{ 'restarted' if wg_iface_check.rc != 0 else 'started' }}"
+
+    - name: Verify hub wireguard interface is up
+      ansible.builtin.command: wg show dune
+      register: wg_hub_status
+      changed_when: false
+      retries: 5
+      delay: 3
+      until: wg_hub_status.rc == 0
 
   handlers:
     - name: Reload wireguard config

@@ -1,7 +1,7 @@
 ---
 
-- name: Initialize wg spokes
-  import_playbook: setup.yaml
+- name: Setup and verify wg hub
+  import_playbook: hub.yaml
 
 - name: Create wg spokes
   hosts: clients
@@ -21,12 +21,23 @@
         group: root
         mode: '0600'
       notify: Restart wireguard
+      no_log: true
 
-    - name: Start wireguard and enable on boot
+    - name: Enable wireguard on boot
       ansible.builtin.systemd:
         name: wg-quick@dune
         enabled: true
-        state: started
+
+    - name: Check if wireguard interface exists
+      ansible.builtin.command: ip link show dune
+      register: wg_iface_check
+      changed_when: false
+      failed_when: false
+
+    - name: Start or restart wireguard
+      ansible.builtin.systemd:
+        name: wg-quick@dune
+        state: "{{ 'restarted' if wg_iface_check.rc != 0 else 'started' }}"
 
     - name: Get wg network info
       ansible.builtin.command: ip -4 addr show dune

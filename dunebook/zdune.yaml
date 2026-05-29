@@ -61,6 +61,12 @@
         dest: /mnt/local/scripts/mount.sh
         mode: '0755'
 
+    - name: Copy clear_logs shell script
+      ansible.builtin.copy:
+        src: ../data/clear_logs.sh
+        dest: /mnt/local/scripts/clear_logs.sh
+        mode: '0755'
+
     - name: Create ddune group
       ansible.builtin.group:
         name: ddune

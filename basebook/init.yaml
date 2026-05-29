@@ -48,8 +48,15 @@
       ansible.builtin.apt:
         name:
           - podman
+          - uidmap
           - unzip
+          - dbus-x11
         state: present
+
+    - name: Enable lingering for host user
+      ansible.builtin.command:
+        cmd: loginctl enable-linger {{ hostvars[inventory_hostname].user }}
+      changed_when: false
 
     - name: Create nomad plugin directory
       ansible.builtin.file:
@@ -62,14 +69,14 @@
         src: https://releases.hashicorp.com/nomad-driver-podman/0.6.1/nomad-driver-podman_0.6.1_linux_amd64.zip
         dest: /opt/nomad/plugins
         remote_src: true
-      when: ansible_architecture == "x86_64"
+      when: ansible_facts['architecture'] == "x86_64"
 
     - name: Download and install nomad plugin directory arm64
       ansible.builtin.unarchive:
         src: https://releases.hashicorp.com/nomad-driver-podman/0.6.1/nomad-driver-podman_0.6.1_linux_arm64.zip
         dest: /opt/nomad/plugins
         remote_src: true
-      when: ansible_architecture == "aarch64"
+      when: ansible_facts['architecture'] == "aarch64"
 
     - name: Get host lsb
       ansible.builtin.shell: echo $(lsb_release -cs)
@@ -109,14 +116,14 @@
         src: https://releases.hashicorp.com/consul/1.18.1/consul_1.18.1_linux_arm64.zip
         dest: /usr/bin
         remote_src: true
-      when: ansible_facts['lsb']['release'] == "24.04" and ansible_architecture == "aarch64"
+      when: ansible_facts['lsb']['release'] == "24.04" and ansible_facts['architecture'] == "aarch64"
 
     - name: Download and Install nomad
       ansible.builtin.unarchive:
         src: https://releases.hashicorp.com/nomad/1.7.7/nomad_1.7.7_linux_arm64.zip
         dest: /usr/bin
         remote_src: true
-      when: ansible_facts['lsb']['release'] == "24.04" and ansible_architecture == "aarch64"
+      when: ansible_facts['lsb']['release'] == "24.04" and ansible_facts['architecture'] == "aarch64"
 
     - name: Add consul service
       ansible.builtin.copy:

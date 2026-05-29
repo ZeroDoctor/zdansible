@@ -51,8 +51,8 @@
 
 - name: Update rkhunter
   become: true
-  register: update_rkhunter_output
-  changed_when: update_rkhunter_output.rc == 0
+  register: rkhunter_output
+  changed_when: rkhunter_output.rc == 0
   ansible.builtin.shell: |
     rkhunter --update
     rkhunter --propupd

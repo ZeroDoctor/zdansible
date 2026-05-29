@@ -2,14 +2,7 @@
 [Interface]
 Address = 10.0.0.{{ hostvars[inventory_hostname].id }}/32
 ListenPort = 51820
-
-# Load your privatekey from file
-PostUp = wg set %i private-key /etc/wireguard/privatekey
-
-# Also ping the vpn server to ensure the tunnel is initialized
-{% for host in groups['mdune'] %}
-PostUp = ping -c1 10.0.0.{{ hostvars[host].id }}
-{% endfor %}
+PrivateKey = {{ privkey }}
 
 {% for host in groups['mdune'] %}
 [Peer]
