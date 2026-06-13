@@ -38,9 +38,11 @@ ports {
 
 # retry_join
 #retry_join = ["consul.domain.internal"]
+retry_join = [
 {% for host in groups['mdune'] %}
-retry_join = ["10.0.0.{{ hostvars[host].id }}:8301"]
+  "10.0.0.{{ hostvars[host].id }}:8301",
 {% endfor %}
+]
 #retry_join = ["[::1]:8301"]
 #retry_join = ["consul.domain.internal", "10.0.4.67"]
 # Cloud Auto-join examples:

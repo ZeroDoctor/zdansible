@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+{% for host in groups['mdune'] %}
+nameserver 10.0.0.{{ hostvars[host].id }}
+{% endfor %}
+nameserver 1.1.1.1
+options edns0 trust-ad

@@ -1,6 +1,6 @@
 ---
 - name: Create wg clients
-  hosts: clients
+  hosts: "clients:mdune"
   become: true
   become_user: root
 

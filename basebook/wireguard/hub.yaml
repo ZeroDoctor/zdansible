@@ -19,11 +19,12 @@
     - name: Create hub wireguard config
       ansible.builtin.template:
         dest: /etc/wireguard/dune.conf
-        src: hub.conf.j2
+        src: dune.conf.j2
         owner: root
         group: root
         mode: '0600'
       notify: Reload wireguard config
+      no_log: true
 
     - name: Enable wireguard on boot
       ansible.builtin.systemd:

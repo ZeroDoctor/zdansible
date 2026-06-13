@@ -17,7 +17,7 @@ ui_config{
 server = true
 
 # bootstrap_expect
-bootstrap_expect=1
+bootstrap_expect = {{ groups['mdune'] | length }}
 
 # Bind addr
 # bind_addr = "[::]" # Listen on all IPv6
@@ -40,6 +40,11 @@ ports {
 # encrypt = "..."
 
 # retry_join
+retry_join = [
+{% for host in groups['mdune'] if host != inventory_hostname %}
+  "10.0.0.{{ hostvars[host].id }}",
+{% endfor %}
+]
 # retry_join = ["consul.domain.internal"]
 # retry_join = ["192.168.2.1"]
 # retry_join = ["[::1]:8301"]

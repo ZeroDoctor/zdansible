@@ -16,7 +16,7 @@
     - name: Create spoke wireguard config
       ansible.builtin.template:
         dest: /etc/wireguard/dune.conf
-        src: spoke.conf.j2
+        src: dune.conf.j2
         owner: root
         group: root
         mode: '0600'

@@ -2,7 +2,7 @@
 [Interface]
 Address = 10.0.1.{{ hostvars[inventory_hostname].id }}/32
 ListenPort = 51820
-PrivateKey = {{ server_privkey }}
+PrivateKey = {{ privkey }}
 
 {% for host in groups['clients'] %}
 [Peer]

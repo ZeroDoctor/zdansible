@@ -14,29 +14,42 @@ other hosts rely on for `*.service.consul` DNS.
 ## Architecture notes
 
 - Inventory IDs (`.inventory.toml`, `[ungrouped.hosts]`) assign each host's
-  WireGuard address as `10.0.0.<id>/32`. `mdune` (`vp0dune`, `id = 3`) is the
-  WireGuard **hub** and the consul/nomad/vault **server**.
-- `vp0dune` is intentionally in *two* inventory groups: `mdune` (hub/server
-  role) and `vdune` → `clients` (it's also a normal spoke/client). Any play
-  that targets `clients` and writes a host-specific config file
+  WireGuard address as `10.0.0.<id>/32`. WireGuard is a **full mesh**: every
+  host in `groups['all']` gets a `/32` peer entry for every other host, each
+  using its own locally-generated keypair (`basebook/wireguard/setup.yaml`,
+  rendered by `basebook/wireguard/templates/dune.conf.j2`).
+- `mdune` is the consul/nomad-server + vault group, and is **dynamically
+  sized** — `bootstrap_expect` for consul and nomad, the consul `retry_join`
+  lists, the vault HA backend, and the client `/etc/resolv.conf` nameservers
+  are all derived from `groups['mdune'] | length` / `groups['mdune']`. To add
+  an HA member, add it to `.inventory.toml` (`[ungrouped.hosts]` with a unique
+  `id`, plus `[mdune.hosts]`) and re-run `make base provide`. Because the wg
+  mesh peer list depends on every host's generated pubkey, adding/removing a
+  host requires a full `make base` run (not just `provide-mdune`) so
+  `setup.yaml` generates keys for the new host before everyone re-templates.
+- `vp0dune` is intentionally in *two* inventory groups: `mdune` (server role)
+  and `vdune` → `clients` (it's also a normal spoke/client). Any play that
+  targets `clients` and writes a host-specific config file
   (`/etc/wireguard/dune.conf`, `/etc/consul.d/consul.hcl`,
   `/etc/nomad.d/nomad.hcl`, etc.) **must** exclude `mdune` — i.e. use
   `hosts: "clients:!mdune"` — otherwise the spoke/client config silently
-  overwrites the hub/server config rendered by the `mdune` play that ran
-  earlier in the same run. (`basebook/wireguard/spoke.yaml`'s "Create wg
-  spokes" play and `basebook/services.yaml`'s "Create dune services" play
-  both do this.) `dunebook/mdune.yaml` is the sole owner of vp0dune's wg hub,
+  overwrites the server config rendered by the `mdune` play that ran earlier
+  in the same run. (`basebook/wireguard/spoke.yaml`'s "Create wg spokes" play
+  and `basebook/services.yaml`'s "Create dune services" play both do this.)
+  `dunebook/mdune.yaml` is the sole owner of an `mdune` host's wg config,
   consul/nomad server, and vault config.
 - `dunebook/mdune.yaml` notifies `Restart consul` / `Restart nomad` handlers
   whenever the server config templates change, so a stale client config
   written by a previous `base-services` run gets reloaded with the correct
-  server config (`server = true`, `bootstrap_expect = 1`) instead of leaving
-  the daemon running with whatever config it last started with.
+  server config (`server = true`, dynamic `bootstrap_expect`) instead of
+  leaving the daemon running with whatever config it last started with.
 - Vault is installed and configured (group/user, binary, `/etc/vault.d`,
-  systemd unit) on `mdune` but **not started automatically** — vault needs to
-  be initialized/unsealed manually before enabling the service
+  systemd unit) on each `mdune` host but **not started automatically** —
+  vault needs to be initialized/unsealed manually before enabling the service
   (`systemctl enable --now vault` once `vault operator init`/`unseal` is
-  done).
+  done). Vault HA is backed by the shared `postgresql` storage
+  (`ha_enabled = "true"`) plus a per-host `cluster_addr` for active/standby
+  request forwarding.
 
 ## Commands Needed
 

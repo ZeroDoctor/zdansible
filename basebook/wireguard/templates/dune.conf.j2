@@ -2,13 +2,17 @@
 [Interface]
 Address = 10.0.0.{{ hostvars[inventory_hostname].id }}/32
 ListenPort = 51820
-PrivateKey = {{ server_privkey }}
+PrivateKey = {{ privkey }}
 
-{% for host in groups['clients'] %}
+{% for host in groups['all'] if host != inventory_hostname %}
 [Peer]
 PublicKey = {{ hostvars[host].pubkey }}
 AllowedIPs = 10.0.0.{{ hostvars[host].id }}/32
+{% if 'net_houston' in group_names and 'net_houston' in hostvars[host].group_names %}
+Endpoint = {{ hostvars[host].inventory_hostname }}:51820 # {{ hostvars[host].host }}
+{% else %}
 Endpoint = {{ hostvars[host].ip }}:51820 # {{ hostvars[host].host }}
+{% endif %}
 PersistentKeepalive = 25
 
 {% endfor %}

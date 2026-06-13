@@ -72,9 +72,9 @@ basebook/secure-req.yaml / secure-main.yaml  -> securebook/ (vendored hardening,
 basebook/init.yaml      -> OS packages, podman, consul/nomad apt/binary install
 basebook/network.yaml   -> ufw rules between net_houston/net_longview/net_vps, dune bashrc
 basebook/wireguard/
-  setup.yaml  -> per-host wg keypair generation (wg-gen.sh)
-  hub.yaml    -> renders hub.conf.j2 for mdune, brings up `dune` wg interface
-  spoke.yaml  -> imports hub.yaml, then renders spoke.conf.j2 for clients:!mdune
+  setup.yaml  -> per-host wg keypair generation, hosts: clients:mdune
+  hub.yaml    -> renders dune.conf.j2 for mdune, brings up `dune` wg interface
+  spoke.yaml  -> imports hub.yaml, then renders dune.conf.j2 (full mesh) for clients:!mdune
 basebook/services.yaml -> imports wireguard/spoke.yaml, then consul-client.hcl.j2 /
                            nomad-client.hcl.j2 for clients:!mdune
 dunebook/mdune.yaml -> hub-only: vault install/config (not auto-started),
@@ -94,6 +94,12 @@ run.
 
 Vault on `mdune` is installed/configured but **never auto-started** — requires
 manual `vault operator init` / `unseal` before `systemctl enable --now vault`.
+
+`mdune` is dynamically sized: `groups['mdune'] | length` drives
+`bootstrap_expect` for consul/nomad, consul's `retry_join`, and the
+`/etc/resolv.conf` nameserver list on clients. Adding an HA `mdune` member is
+just an inventory change + `make base provide` — see README "Architecture
+notes" for details.
 
 ## Variables
 
