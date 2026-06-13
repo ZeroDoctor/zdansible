@@ -33,16 +33,17 @@ other hosts rely on for `*.service.consul` DNS.
   (`/etc/wireguard/dune.conf`, `/etc/consul.d/consul.hcl`,
   `/etc/nomad.d/nomad.hcl`, etc.) **must** exclude `mdune` — i.e. use
   `hosts: "clients:!mdune"` — otherwise the spoke/client config silently
-  overwrites the server config rendered by the `mdune` play that ran earlier
+  overwrites the server config rendered by the `mdune` play that runs later
   in the same run. (`basebook/wireguard/spoke.yaml`'s "Create wg spokes" play
   and `basebook/services.yaml`'s "Create dune services" play both do this.)
-  `dunebook/mdune.yaml` is the sole owner of an `mdune` host's wg config,
-  consul/nomad server, and vault config.
-- `dunebook/mdune.yaml` notifies `Restart consul` / `Restart nomad` handlers
-  whenever the server config templates change, so a stale client config
-  written by a previous `base-services` run gets reloaded with the correct
-  server config (`server = true`, dynamic `bootstrap_expect`) instead of
-  leaving the daemon running with whatever config it last started with.
+  `basebook/services.yaml`'s "Create mdune server services" play (runs after
+  "Create dune services") is the sole owner of an `mdune` host's
+  `/etc/consul.d/consul.hcl` and `/etc/nomad.d/nomad.hcl` — it runs as part of
+  `base-services`/`make base`, so a plain `make base` always leaves `mdune`
+  hosts with the correct server config (`server = true`, dynamic
+  `bootstrap_expect`) without needing `provide-mdune`. `dunebook/mdune.yaml`
+  (`provide-mdune`) owns the rest of an `mdune` host's setup: wg config,
+  vault config, dnsmasq resolver, and the zdnomad/migration tooling.
 - Vault is installed and configured (group/user, binary, `/etc/vault.d`,
   systemd unit) on each `mdune` host but **not started automatically** —
   vault needs to be initialized/unsealed manually before enabling the service

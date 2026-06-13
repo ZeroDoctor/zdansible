@@ -54,3 +54,77 @@
         name: nomad
         enabled: true
         state: started
+
+- name: Create mdune server services
+  hosts: mdune
+  become: true
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Get wg network info
+      ansible.builtin.command: ip -4 addr show dune
+      register: wg_net_info
+      changed_when: wg_net_info.rc == 0
+
+    - name: Parse wg ip from network info
+      ansible.builtin.command:
+        cmd: grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+        stdin: "{{ wg_net_info.stdout }}"
+      register: wg_ip_address
+      changed_when: wg_ip_address.rc == 0
+
+    - name: Set local network ip address
+      ansible.builtin.set_fact:
+        wg_ip: "{{ wg_ip_address.stdout }}"
+
+    - name: Upload consul service file
+      ansible.builtin.copy:
+        src: ../data/consul.service
+        dest: /lib/systemd/system/consul.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create consul server config
+      ansible.builtin.template:
+        dest: /etc/consul.d/consul.hcl
+        src: consul-server.hcl.j2
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart consul
+
+    - name: Start consul and enable on boot
+      ansible.builtin.systemd:
+        name: consul
+        enabled: true
+        state: started
+
+    - name: Create nomad server config
+      ansible.builtin.template:
+        dest: /etc/nomad.d/nomad.hcl
+        src: nomad-server.hcl.j2
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart nomad
+
+    - name: Start nomad and enable on boot
+      ansible.builtin.systemd:
+        name: nomad
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Restart consul
+      ansible.builtin.systemd:
+        name: consul
+        state: restarted
+
+    - name: Restart nomad
+      ansible.builtin.systemd:
+        name: nomad
+        state: restarted
