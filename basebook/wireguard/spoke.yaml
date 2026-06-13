@@ -4,7 +4,7 @@
   import_playbook: hub.yaml
 
 - name: Create wg spokes
-  hosts: clients
+  hosts: "clients:!mdune"
   become: true
   become_user: root
 

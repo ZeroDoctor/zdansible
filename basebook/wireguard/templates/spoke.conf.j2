@@ -20,7 +20,7 @@ PersistentKeepalive = 25
 
 {% if 'net_houston' in group_names %}
 
-{% for host in groups['net_houston'] if host != inventory_hostname %}
+{% for host in groups['net_houston'] if host != inventory_hostname and 'mdune' not in hostvars[host].group_names %}
 [Peer]
 PublicKey = {{ hostvars[host].pubkey }}
 AllowedIPs = 10.0.0.{{ hostvars[host].id }}/32

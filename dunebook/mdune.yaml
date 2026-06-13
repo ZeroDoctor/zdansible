@@ -63,11 +63,51 @@
       ansible.builtin.set_fact:
         wg_ip: "{{ wg_ip_address.stdout }}"
 
+    - name: Create vault group
+      ansible.builtin.group:
+        name: vault
+        state: present
+
+    - name: Create vault user
+      ansible.builtin.user:
+        name: vault
+        groups: "vault"
+        shell: /bin/bash
+        create_home: false
+        state: present
+
     - name: Install hashicorp vault
       ansible.builtin.apt:
         name:
           - vault
         state: present
+      when: ansible_facts['lsb']['release'] == "23.10" or ansible_facts['lsb']['release'] == "22.04"
+
+    - name: Check vault exists
+      ansible.builtin.stat:
+        path: /usr/bin/vault
+      register: vault_check
+
+    - name: Download and Install vault
+      ansible.builtin.unarchive:
+        src: https://releases.hashicorp.com/vault/1.16.2/vault_1.16.2_linux_arm64.zip
+        dest: /usr/bin
+        remote_src: true
+      when: ansible_facts['lsb']['release'] == "24.04" and ansible_facts['architecture'] == "aarch64" and not vault_check.stat.exists
+
+    - name: Add vault service
+      ansible.builtin.copy:
+        src: ../data/vault.service
+        dest: /etc/systemd/system/vault.service
+        mode: '0644'
+
+    - name: Creates vault directory
+      ansible.builtin.file:
+        path: /etc/vault.d
+        state: directory
+        owner: vault
+        group: vault
+        mode: '0755'
 
     - name: Create vault server config
       ansible.builtin.template:
@@ -76,6 +116,12 @@
         owner: vault
         group: vault
         mode: '0644'
+
+    - name: Enable vault on boot
+      ansible.builtin.systemd:
+        name: vault
+        enabled: true
+        daemon_reload: true
 
     - name: Upload service file
       ansible.builtin.copy:
@@ -92,6 +138,7 @@
         owner: root
         group: root
         mode: '0644'
+      notify: Restart consul
 
     - name: Start consul and enable on boot
       ansible.builtin.systemd:
@@ -106,6 +153,7 @@
         owner: root
         group: root
         mode: '0644'
+      notify: Restart nomad
 
     - name: Start nomad and enable on boot
       ansible.builtin.systemd:
@@ -152,3 +200,14 @@
         name: dnsmasq
         enabled: true
         state: started
+
+  handlers:
+    - name: Restart consul
+      ansible.builtin.systemd:
+        name: consul
+        state: restarted
+
+    - name: Restart nomad
+      ansible.builtin.systemd:
+        name: nomad
+        state: restarted

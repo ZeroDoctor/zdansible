@@ -7,7 +7,7 @@
   import_playbook: wireguard/spoke.yaml
 
 - name: Create dune services
-  hosts: clients
+  hosts: "clients:!mdune"
   become: true
 
   vars_files:
