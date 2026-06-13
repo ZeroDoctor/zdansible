@@ -1,3 +1,4 @@
+.claude/
 .vscode/
 venv/
 
@@ -8,13 +9,16 @@ _inventory
 .ansible/
 
 # Script files
-ansible/data/vpn.sh
-ansible/data/mount.sh
-ansible/data/net.sh
+data/vpn.sh
+data/mount.sh
+data/net.sh
 
 # SSH Secrets
-ansible/data/emergenkey
-ansible/data/emergenkey.pub
-ansible/data/masterkey
-ansible/data/masterkey.pub
-ansible/data/sshd_config
+data/emergenkey
+data/emergenkey.pub
+data/masterkey
+data/masterkey.pub
+data/sshd_config
+
+# Secrets
+vars/vars.secrets.yaml
