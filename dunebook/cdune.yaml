@@ -1,0 +1,15 @@
+---
+
+- name: Detect SSH port
+  import_playbook: ../basebook/detect-port.yaml
+
+- name: Initialize cdune config
+  hosts: cdune
+  become: true
+  become_user: root
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks: []

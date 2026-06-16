@@ -32,7 +32,11 @@ consul {
 
 plugin_dir = "/opt/nomad/plugins"
 
-plugin "nomad-driver-podman" {}
+plugin "nomad-driver-podman" {
+  config {
+    socket_path = "unix:///run/user/{{ ansible_user_uid }}/podman/podman.sock"
+  }
+}
 
 telemetry {
   collection_interval = "5s"

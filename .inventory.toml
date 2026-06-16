@@ -11,12 +11,19 @@
 "192.168.1.224"  = { user = "zdune", ip = "162.203.120.155", host = "zp0dune", id = 4 }
 "192.168.1.225"  = { user = "zdune", ip = "162.203.120.155", host = "zp1dune", id = 5, extra_users = ["adune"] }
 "192.168.1.226"  = { user = "zdune", ip = "162.203.120.155", host = "zp2dune", id = 6 }
+"192.168.1.179"  = { user = "cdune", ip = "162.203.120.155", host = "cdune-static", id = 7}
 
 [adune.vars]
 ansible_ssh_user = "adune"
 
 [adune.hosts]
 "192.168.1.225" = { user = "adune", ip = "162.203.120.155" }
+
+[cdune.vars]
+ansible_ssh_user = "cdune"
+
+[cdune.hosts]
+"192.168.1.179" = { user = "cdune", ip = "162.203.120.155" }
 
 [mdune.vars]
 ansible_ssh_user = "mdune"
@@ -50,7 +57,8 @@ children = [
   "adune",
   "tdune",
   "vdune",
-  "zdune"
+  "zdune",
+  "cdune"
 ]
 
 [net_longview.hosts]
@@ -62,6 +70,7 @@ children = [
 "192.168.1.224" = { user = "zdune", ip = "162.203.120.155" }
 "192.168.1.225" = { user = "zdune", ip = "162.203.120.155" }
 "192.168.1.226" = { user = "zdune", ip = "162.203.120.155" }
+"192.168.1.179" = { user = "cdune", ip = "162.203.120.155" }
 
 [net_vps.hosts]
 

@@ -4,7 +4,7 @@ Address = 10.0.0.{{ hostvars[inventory_hostname].id }}/32
 ListenPort = 51820
 PrivateKey = {{ privkey }}
 
-{% for host in groups['all'] if host != inventory_hostname %}
+{% for host in groups['all'] if host != inventory_hostname and hostvars[host].pubkey is defined %}
 [Peer]
 PublicKey = {{ hostvars[host].pubkey }}
 AllowedIPs = 10.0.0.{{ hostvars[host].id }}/32

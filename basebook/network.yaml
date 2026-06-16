@@ -183,6 +183,26 @@
         to_ip: "{{ hostvars[inventory_hostname].ansible_all_ipv4_addresses[0] }}"
       loop: "{{ groups['net_vps'] }}"
 
+- name: Allow WireGuard port for mobile hosts
+  hosts: net_mobile
+  become: true
+  become_user: root
+
+  tasks:
+    - name: UFW allow WireGuard inbound
+      community.general.ufw:
+        rule: allow
+        direction: in
+        port: '51820'
+        proto: udp
+
+    - name: UFW allow WireGuard outbound
+      community.general.ufw:
+        rule: allow
+        direction: out
+        port: '51820'
+        proto: udp
+
 - name: Configure bash for dune hosts
   hosts: clients
   become: true

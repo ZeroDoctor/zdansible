@@ -1,0 +1,35 @@
+---
+
+- name: Bootstrap host user from root
+  hosts: cdune
+  remote_user: root
+  become: false
+
+  vars_files:
+    - ../vars/vars.yaml
+    - ../vars/vars.secrets.yaml
+
+  tasks:
+    - name: Create host user
+      ansible.builtin.user:
+        name: "{{ hostvars[inventory_hostname].user }}"
+        password: "{{ user_pw | password_hash('sha512') }}"
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Allow passwordless sudo
+      ansible.builtin.copy:
+        content: "{{ hostvars[inventory_hostname].user }} ALL=(ALL) NOPASSWD:ALL\n"
+        dest: "/etc/sudoers.d/{{ hostvars[inventory_hostname].user }}"
+        owner: root
+        group: root
+        mode: '0440'
+        validate: 'visudo -cf %s'
+
+    - name: Add emergenkey to user authorized_keys
+      ansible.posix.authorized_key:
+        user: "{{ hostvars[inventory_hostname].user }}"
+        state: present
+        manage_dir: true
+        key: "{{ lookup('file', '../data/emergenkey.pub') }}"

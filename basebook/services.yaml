@@ -35,6 +35,20 @@
         enabled: true
         state: started
 
+    - name: Start user systemd instance for {{ hostvars[inventory_hostname].user }}
+      ansible.builtin.systemd:
+        name: "user@{{ ansible_user_uid }}.service"
+        state: started
+
+    - name: Enable rootless podman socket for {{ hostvars[inventory_hostname].user }}
+      ansible.builtin.systemd:
+        name: podman.socket
+        enabled: true
+        state: started
+        scope: user
+      become: true
+      become_user: "{{ hostvars[inventory_hostname].user }}"
+
     - name: Create nomad client config
       ansible.builtin.template:
         dest: /etc/nomad.d/nomad.hcl
@@ -102,6 +116,20 @@
         name: consul
         enabled: true
         state: started
+
+    - name: Start user systemd instance for {{ hostvars[inventory_hostname].user }}
+      ansible.builtin.systemd:
+        name: "user@{{ ansible_user_uid }}.service"
+        state: started
+
+    - name: Enable rootless podman socket for {{ hostvars[inventory_hostname].user }}
+      ansible.builtin.systemd:
+        name: podman.socket
+        enabled: true
+        state: started
+        scope: user
+      become: true
+      become_user: "{{ hostvars[inventory_hostname].user }}"
 
     - name: Create nomad server config
       ansible.builtin.template:
