@@ -49,6 +49,13 @@
       become: true
       become_user: "{{ hostvars[inventory_hostname].user }}"
 
+    - name: Enable rootful podman socket
+      ansible.builtin.systemd:
+        name: podman.socket
+        enabled: true
+        state: started
+        scope: system
+
     - name: Create nomad client config
       ansible.builtin.template:
         dest: /etc/nomad.d/nomad.hcl
